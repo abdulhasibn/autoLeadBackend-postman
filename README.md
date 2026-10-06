@@ -9,7 +9,7 @@ The source of truth is `postman/` in the backend repo, and this repo mirrors it.
 
 | File | Purpose |
 | ---- | ------- |
-| `AutoLead-API.postman_collection.json` | Health, Auth, Users, Owners, Catalog, Vehicles, Leads, Notifications |
+| `AutoLead-API.postman_collection.json` | Health, Auth, Users, Owners, Catalog, Vehicles, Leads, Notifications, Dashboard |
 | `AutoLead-Local.postman_environment.json` | Local `baseUrl` (`http://localhost:3000`) and sample variables |
 
 ## Collection layout
@@ -23,9 +23,10 @@ Every feature ships as its own **top-level folder**. Do not leave new feature re
 | Users | Staff CRUD under `/users` (Admin) |
 | Owners | Owner CRUD under `/owners` (Admin or Salesperson; deactivate is Admin-only) |
 | Catalog | `GET /catalog/makes`, `/makes/:makeId/models`, `/models/:modelId/variants` (Admin or Salesperson) |
-| Vehicles | Create / list / get / update, status (`open` / `linked` / `dropped` / `sold`) + status history, signed photo and document uploads (Admin or Salesperson; drop/re-list and deletes are Admin-only) |
-| Leads | Walk-in create, associate vehicle, assign (Admin), follow-up, status (`new` / `not_now` / `booking_confirmed` / `converted` / `lost` / `vehicle_unavailable`), convert (sells the vehicle) (Admin or Salesperson; a salesperson sees only leads assigned to them) |
+| Vehicles | Create / list / get / update (list and get carry a signed `frontImageUrl`), status (`open` / `linked` / `dropped` / `sold`) + status history (with `changedByName`), signed photo and document uploads (documents take an optional `fileName`) (Admin or Salesperson; drop/re-list and deletes are Admin-only) |
+| Leads | Walk-in create (optional catalog preference), set preference, associate vehicle (reads include a `linkedVehicle` summary), assign (Admin), follow-up, status (`new` / `not_now` / `booking_confirmed` / `converted` / `lost` / `vehicle_unavailable`), convert (sells the vehicle) (Admin or Salesperson; a salesperson sees only leads assigned to them) |
 | Notifications | Own inbox (`follow_up_due`, `lead_assigned`) + mark read (Admin or Salesperson) |
+| Dashboard | `GET /dashboard` — KPIs, attention lists, today's follow-ups (Admin) |
 
 ## Import
 
@@ -52,9 +53,10 @@ Every feature ships as its own **top-level folder**. Do not leave new feature re
    2. **Vehicles → Create Vehicle** (`showroomId` is optional; defaults to your home showroom) → **List Vehicles** / **Get Vehicle** / **Update Vehicle**
    3. **Create Media Upload** → `PUT` the bytes to the returned `uploadUrl` → **Confirm Media** → **List Media** (same for documents)
    4. New vehicles start `open`. Linking a lead makes them `linked`, and converting a lead makes them `sold`. **Change Vehicle Status** (Admin) only drops or re-lists: dropping a vehicle with active leads first returns `422 VEHICLE_HAS_LINKED_LEADS` with `error.details.linkedLeadCount`; resend with `confirmUnlinkLeads: true`. **List Vehicle Status History** shows each step.
-   5. **Leads → Create Lead** → **Associate Vehicle** → **Assign Lead** (Admin; uses `staffUserId`) → **Schedule Follow-up** → **Change Lead Status**
+   5. **Leads → Create Lead** (uses `modelId` as the preferred model) → **Set Lead Preference** (optional; uses `variantId`) → **Associate Vehicle** → **Assign Lead** (Admin; uses `staffUserId`) → **Schedule Follow-up** → **Change Lead Status**
    6. Move the lead to `booking_confirmed` (needs a vehicle), then **Convert Lead**. It sells the vehicle to this lead and moves the other active leads on that vehicle to `vehicle_unavailable`.
    7. **Notifications → List Notifications** → **Mark Notification Read**. The assignee sees `lead_assigned` right away and `follow_up_due` at the scheduled time.
+   8. **Dashboard → Get Dashboard** (Admin).
 
 Shared error envelope:
 
